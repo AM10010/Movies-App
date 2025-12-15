@@ -1,5 +1,5 @@
 import { Client, ID, Query, Databases } from "appwrite";
-import Search from "./compnants/Search";
+import Search from "./componants/Search";
 
 const DatabaseID = import.meta.env.VITE_APPWRITE_DATABASE_ID;
 const CollectionID = import.meta.env.VITE_APPWRITE_COLLECTION_ID;

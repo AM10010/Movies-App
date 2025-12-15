@@ -1,9 +1,9 @@
 import './App.css';
 import './index.css';
-import Search from './compnants/Search'; 
+import Search from './componants/Search'; 
 import { useState, useEffect } from 'react';
-import Spinner from './compnants/spinner';
-import MovieCard from './compnants/MovieCard';
+import Spinner from './componants/Spinner';
+import MovieCard from './componants/MovieCard';
 import { useDebounce } from 'react-use';
 import { updateSearchCount, getTrendingMovies } from './appwrite';
 
