@@ -1,65 +1,74 @@
 import './App.css';
 import './index.css';
-import Search from './componants/Search'; 
 import { useState, useEffect } from 'react';
+import { useDebounce } from 'react-use';
+
+import Search from './componants/Search';
 import Spinner from './componants/Spinner';
 import MovieCard from './componants/MovieCard';
-import { useDebounce } from 'react-use';
+
 import { updateSearchCount, getTrendingMovies } from './appwrite';
 
 const API_BASE_URL = 'https://api.themoviedb.org/3';
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 
-const API_OPTIONS = {
-  method: 'GET',
-  headers: {
-    accept: 'application/json',
-    Authorization: `Bearer ${API_KEY}`,
-  },
-};
-
 function App() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [message, setMessage] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [movies, setMovies] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [message, setMessage] = useState('');
 
   useDebounce(() => setDebouncedSearchTerm(searchTerm), 800, [searchTerm]);
 
   const fetchMovies = async (query = '') => {
+    if (!API_KEY) {
+      console.error('TMDB API key is missing');
+      setMessage('Configuration error. API key missing.');
+      return;
+    }
+
     setLoading(true);
     setMessage('');
+
     try {
       const endpoint = query
         ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
         : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
-      const response = await fetch(endpoint, API_OPTIONS);
+
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          Authorization: `Bearer ${API_KEY}`,
+        },
+      });
 
       if (!response.ok) {
-        setMovies([]);
-        throw new Error('Network response was not ok');
+        throw new Error(`TMDB error: ${response.status}`);
       }
 
       const data = await response.json();
 
       if (!data.results || data.results.length === 0) {
-        setMessage('No movies found.');
         setMovies([]);
+        setMessage('No movies found.');
         return;
       }
 
       setMovies(data.results);
 
-      if (query && data.results.length > 0) {
+      if (query) {
         await updateSearchCount(query, data.results[0]);
       }
     } catch (error) {
       console.error('Error fetching movies:', error);
       setMessage('Failed to fetch movies. Please try again later.');
+      setMovies([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const loadTrendingMovies = async () => {
@@ -68,7 +77,6 @@ function App() {
       setTrendingMovies(trending);
     } catch (error) {
       console.error('Error fetching trending movies:', error);
-      setMessage('Failed to fetch trending movies. Please try again later.');
     }
   };
 
@@ -100,10 +108,7 @@ function App() {
               {trendingMovies.map((movie, index) => (
                 <li key={movie.$id} className="text-center">
                   <p className="font-bold">{index + 1}</p>
-                  <img
-                    src={movie.poster_url}
-                    alt={movie.searchTerm}
-                  />
+                  <img src={movie.poster_url} alt={movie.searchTerm} />
                 </li>
               ))}
             </ul>
@@ -112,6 +117,7 @@ function App() {
 
         <section className="all-movies">
           <h2 className="text-center mt-6">All Movies</h2>
+
           {loading ? (
             <Spinner />
           ) : message ? (
